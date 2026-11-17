@@ -1,0 +1,9 @@
+# Complement local: no seleccionem aquest fitxer en Coolify.
+name: cloud-healthys-local
+services:
+  api:
+    restart: "no"
+    ports:
+      - "127.0.0.1:${HEALTHYS_HTTP_PORT:-18085}:7070"
+  postgres:
+    restart: "no"

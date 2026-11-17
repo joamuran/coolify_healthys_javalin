@@ -1,0 +1,42 @@
+# Base de desplegament: aplicacio/. No publiquem ports directes al servidor.
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: healthys
+      POSTGRES_USER: healthys_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Definim POSTGRES_PASSWORD}
+      HEALTHYS_API_PASSWORD: ${HEALTHYS_API_PASSWORD:?Definim HEALTHYS_API_PASSWORD}
+    volumes:
+      - dades:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthys_admin -d healthys"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    environment:
+      PORT: "7070"
+      AD_DB_URL: jdbc:postgresql://postgres:5432/healthys?connectTimeout=3&socketTimeout=5
+      AD_DB_USER: healthys_api
+      AD_DB_PASSWORD: ${HEALTHYS_API_PASSWORD:?Definim HEALTHYS_API_PASSWORD}
+    expose:
+      - "7070"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "java", "-cp", "/app/lib/*", "com.ieseljust.ad.healthys.infra.Healthcheck"]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
+volumes:
+  dades:
